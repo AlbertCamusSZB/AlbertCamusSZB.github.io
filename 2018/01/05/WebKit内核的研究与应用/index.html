@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="iOS,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="概述本篇文章将阐述，WebKit核新的类和协议、MessageHandler消息处理器、JS-&amp;gt;OC，OC-&amp;gt;JS 交互流程、WKNavagationDelegate协议、WKUIDelegate协议等类或方法分析WebKit内核的原理及应用说明。">
+<meta name="keywords" content="iOS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WebKit内核的研究与应用">
+<meta property="og:url" content="http://yoursite.com/2018/01/05/WebKit内核的研究与应用/index.html">
+<meta property="og:site_name" content="既白">
+<meta property="og:description" content="概述本篇文章将阐述，WebKit核新的类和协议、MessageHandler消息处理器、JS-&amp;gt;OC，OC-&amp;gt;JS 交互流程、WKNavagationDelegate协议、WKUIDelegate协议等类或方法分析WebKit内核的原理及应用说明。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-01-05T08:57:10.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WebKit内核的研究与应用">
+<meta name="twitter:description" content="概述本篇文章将阐述，WebKit核新的类和协议、MessageHandler消息处理器、JS-&amp;gt;OC，OC-&amp;gt;JS 交互流程、WKNavagationDelegate协议、WKUIDelegate协议等类或方法分析WebKit内核的原理及应用说明。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/01/05/WebKit内核的研究与应用/">
+
+
+
+
+
+  <title>WebKit内核的研究与应用 | 既白</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?6f2357622e0d1dc032d88686b74381ff";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">既白</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/01/05/WebKit内核的研究与应用/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="既白">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="既白">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">WebKit内核的研究与应用</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-05T15:00:00+08:00">
+                2018-01-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/iOS开发/" itemprop="url" rel="index">
+                    <span itemprop="name">iOS开发</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/01/05/WebKit内核的研究与应用/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/01/05/WebKit内核的研究与应用/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>本篇文章将阐述，<strong>WebKit核新的类和协议</strong>、<strong>MessageHandler消息处理器</strong>、<strong>JS-&gt;OC，OC-&gt;JS 交互流程</strong>、<strong>WKNavagationDelegate协议</strong>、<strong>WKUIDelegate协议</strong>等类或方法分析<code>WebKit</code>内核的原理及应用说明。<br><a id="more"></a></p>
+<h2 id="重点注意"><a href="#重点注意" class="headerlink" title="重点注意"></a>重点注意</h2><p><strong><code>WebKit</code> 的函数和方法只能在<code>App</code>的主线程或者主队列中调用。</strong></p>
+<h2 id="WebKit核新的类和协议"><a href="#WebKit核新的类和协议" class="headerlink" title="WebKit核新的类和协议"></a>WebKit核新的类和协议</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">WKWebView：网页的渲染与展示，通过WKWebViewConfiguration可以进行配置。</span><br><span class="line"></span><br><span class="line">WKWebViewConfiguration：这个类专门用来配置WKWebView。</span><br><span class="line"></span><br><span class="line">WKPreference:这个类用来进行M相关设置。</span><br><span class="line"></span><br><span class="line">WKProcessPool：这个类用来配置进程池，与网页视图的资源共享有关。</span><br><span class="line"></span><br><span class="line">WKUserContentController：这个类主要用来做native与JavaScript的交互管理。</span><br><span class="line"></span><br><span class="line">WKUserScript：用于进行JavaScript注入。</span><br><span class="line"></span><br><span class="line">WKScriptMessageHandler：这个类专门用来处理JavaScript调用native的方法。</span><br><span class="line"></span><br><span class="line">WKNavigationDelegate：网页跳转间的导航管理协议，这个协议可以监听网页的活动。</span><br><span class="line"></span><br><span class="line">WKNavigationAction：网页某个活动的示例化对象。</span><br><span class="line"></span><br><span class="line">WKUIDelegate：用于交互处理JavaScript中的一些弹出框。</span><br><span class="line"></span><br><span class="line">WKBackForwardList：堆栈管理的网页列表。</span><br><span class="line"></span><br><span class="line">WKBackForwardListItem：每个网页节点对象。</span><br><span class="line"></span><br><span class="line">使用WKWebViewConfiguration对WebView进行配置</span><br></pre></td></tr></table></figure>
+<h3 id="WebbView初始化"><a href="#WebbView初始化" class="headerlink" title="WebbView初始化"></a>WebbView初始化</h3><h4 id="初始化函数"><a href="#初始化函数" class="headerlink" title="初始化函数"></a>初始化函数</h4><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">- (instancetype)initWithFrame:(CGRect)frame configuration:(WKWebViewConfiguration *)configuration;</span><br></pre></td></tr></table></figure>
+<h4 id="加载方式，建议使用苹果推荐使用的函数"><a href="#加载方式，建议使用苹果推荐使用的函数" class="headerlink" title="加载方式，建议使用苹果推荐使用的函数"></a>加载方式，建议使用苹果推荐使用的函数</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// 加载HTML文件，推荐使用</span><br><span class="line">- (WKNavigation *)loadHTMLString:(NSString *)string baseURL:(NSURL *)baseURL;</span><br><span class="line">// 加载一个请求，推荐使用</span><br><span class="line">- (WKNavigation *)loadRequest:(NSURLRequest *)request;</span><br><span class="line"></span><br><span class="line">// 加载本地文件，如Html文件等,不推荐使用</span><br><span class="line">- (nullable WKNavigation *)loadFileURL:(NSURL *)URL allowingReadAccessToURL:(NSURL *)readAccessURL API_AVAILABLE(macosx(10.11), ios(9.0));</span><br><span class="line">// // 加载本地文件，如Html文件等,不推荐使用</span><br><span class="line">- (nullable WKNavigation *)loadData:(NSData *)data MIMEType:(NSString *)MIMEType characterEncodingName:(NSString *)characterEncodingName baseURL:(NSURL *)baseURL API_AVAILABLE(macosx(10.11), ios(9.0));</span><br></pre></td></tr></table></figure>
+<h4 id="WKWebViewConfiguration内容配置"><a href="#WKWebViewConfiguration内容配置" class="headerlink" title="WKWebViewConfiguration内容配置"></a>WKWebViewConfiguration内容配置</h4><ul>
+<li><p><code>WKPerference</code>偏好设置</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//进行偏好设置</span></span><br><span class="line">WKPreferences * preference = [[WKPreferences alloc]init];    </span><br><span class="line"><span class="comment">//最小字体大小 当将javaScriptEnabled属性设置为NO时，可以看到明显的效果</span></span><br><span class="line">preference.minimumFontSize = <span class="number">0</span>;    </span><br><span class="line"><span class="comment">//设置是否支持javaScript 默认是支持的</span></span><br><span class="line">preference.javaScriptEnabled = YES;    </span><br><span class="line"><span class="comment">//设置是否允许不经过用户交互由javaScript自动打开窗口</span></span><br><span class="line">preference.javaScriptCanOpenWindowsAutomatically = YES;</span><br><span class="line">config.preferences = preference;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>WKUserContentController</code>：<code>native</code>与<code>JavaScript</code>的交互管理<br><code>WKUserContentController</code> 最重要的对象方法就是<code>addScriptMessageHandler:name:</code>，我把这个功能简称为<code>MessageHandler</code>(<strong>消息处理器</strong>)。<code>- addScriptMessageHandler:name:</code>有两个参数，第一个参数是<code>userContentController</code>的代理对象（通常是<code>self</code>），第二个参数是JS里发送<code>postMessage</code>的对象（相当于一个<code>native</code>与<code>js</code>相互识别的一个标识）。使用<code>MessageHandler</code>功能，就必须要实现<code>WKScriptMessageHandler</code>协议。</p>
+</li>
+</ul>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//设置内容交互控制器 用于处理JavaScript与native交互</span></span><br><span class="line">WKUserContentController * userController = [[WKUserContentController alloc]init];    </span><br><span class="line"><span class="comment">//设置处理代理并且注册要被js调用的方法名称</span></span><br><span class="line">[userController addScriptMessageHandler:self name:@<span class="string">"name"</span>];    </span><br><span class="line"><span class="comment">//js注入，注入一个测试方法。</span></span><br><span class="line">NSString *javaScriptSource = @<span class="string">"function userFunc()&#123;window.webkit.messageHandlers.name.postMessage( &#123;\"name\":\"HS\"&#125;)&#125;"</span>;    </span><br><span class="line">WKUserScript *userScript = [[WKUserScript alloc] initWithSource:javaScriptSource injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];</span><br><span class="line"><span class="comment">// forMainFrameOnly:NO(全局窗口)，yes（只限主窗口）[userController addUserScript:userScript];</span></span><br><span class="line">config.userContentController = userController;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>在native代理的回调方法中，会获取到JavaScript传递进来的消息</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-(<span class="keyword">void</span>)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message&#123;    </span><br><span class="line"><span class="comment">//这里可以获取到JavaScript传递进来的消息</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>WKScriptMessage</code>类是<code>JavaScript</code>传递的对象实例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">//传递的消息主体</span><br><span class="line">@property (nonatomic, readonly, copy) id body;</span><br><span class="line">//传递消息的WebView</span><br><span class="line">@property (nullable, nonatomic, readonly, weak) WKWebView *webView;</span><br><span class="line">//传递消息的WebView当前页面对象</span><br><span class="line">@property (nonatomic, readonly, copy) WKFrameInfo *frameInfo;</span><br><span class="line">//消息名称,也就是我们注册回调的“name”</span><br><span class="line">@property (nonatomic, readonly, copy) NSString *name;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>注入JS脚本</p>
+</li>
+</ul>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)addUserScript:(WKUserScript *)userScript;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>WKWebsiteDataStore</code>:<code>WebKit</code>框架采用其本身的缓存框架<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">@interface WKWebsiteDataStore : NSObject</span><br><span class="line"><span class="comment">//获取默认的存储器 此存储器为持久性的会被写入磁盘</span></span><br><span class="line">+ (WKWebsiteDataStore *)defaultDataStore;</span><br><span class="line"><span class="comment">//获取一个临时的存储器</span></span><br><span class="line">+ (WKWebsiteDataStore *)nonPersistentDataStore;</span><br><span class="line"><span class="comment">//存储器是否是临时的</span></span><br><span class="line">@property (nonatomic, readonly, getter=isPersistent) BOOL persistent;</span><br><span class="line"><span class="comment">//所有可以存储的类型</span></span><br><span class="line">+ (NSSet&lt;NSString *&gt; *)allWebsiteDataTypes;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line"><span class="comment">//设置数据存储store</span></span><br><span class="line">config.websiteDataStore = [WKWebsiteDataStore defaultDataStore];</span><br><span class="line"></span><br><span class="line"><span class="comment">//设置是否将网页内容全部加载到内存后再渲染</span></span><br><span class="line">    config.suppressesIncrementalRendering = NO;    <span class="comment">//设置HTML5视频是否允许网页播放 设置为NO则会使用本地播放器</span></span><br><span class="line">    config.allowsInlineMediaPlayback =  YES;    <span class="comment">//设置是否允许ariPlay播放</span></span><br><span class="line">    config.allowsAirPlayForMediaPlayback = YES;    <span class="comment">//设置视频是否需要用户手动播放  设置为NO则会允许自动播放</span></span><br><span class="line">    config.requiresUserActionForMediaPlayback = NO;    <span class="comment">//设置是否允许画中画技术 在特定设备上有效</span></span><br><span class="line">    config.allowsPictureInPictureMediaPlayback = YES;    <span class="comment">//设置选择模式 是按字符选择 还是按模块选择/*</span></span><br><span class="line">    typedef NS_ENUM(NSInteger, WKSelectionGranularity) &#123;</span><br><span class="line">        <span class="comment">//按模块选择</span></span><br><span class="line">        WKSelectionGranularityDynamic,</span><br><span class="line">        <span class="comment">//按字符选择</span></span><br><span class="line">        WKSelectionGranularityCharacter,</span><br><span class="line">    &#125; NS_ENUM_AVAILABLE_IOS(<span class="number">8</span>_0);</span><br><span class="line">    *<span class="regexp">/</span></span><br><span class="line"><span class="regexp">    config.selectionGranularity = WKSelectionGranularityCharacter;    /</span><span class="regexp">/设置请求的User-Agent信息中应用程序名称 iOS9后可用</span></span><br><span class="line"><span class="regexp">    config.applicationNameForUserAgent = @"HS";</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="JS-gt-OC，OC-gt-JS-交互流程"><a href="#JS-gt-OC，OC-gt-JS-交互流程" class="headerlink" title="JS-&gt;OC，OC-&gt;JS 交互流程"></a>JS-&gt;OC，OC-&gt;JS 交互流程</h2><h3 id="Native-实现方式"><a href="#Native-实现方式" class="headerlink" title="Native 实现方式"></a>Native 实现方式</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//防止频繁IO操作，造成性能影响</span></span><br><span class="line"><span class="keyword">static</span> NSString *nativejsSource;</span><br><span class="line"><span class="keyword">static</span> dispatch_once_t onceToken;</span><br><span class="line">dispatch_once(&amp;onceToken, ^&#123;</span><br><span class="line">    nativejsSource = [NSString stringWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@<span class="string">"NativeApi"</span> ofType:@<span class="string">"js"</span>] encoding:NSUTF8StringEncoding error:nil];</span><br><span class="line">&#125;);</span><br><span class="line"><span class="comment">//添加自定义的脚本</span></span><br><span class="line">WKUserScript *js = [[WKUserScript alloc] initWithSource:nativejsSource injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];</span><br><span class="line">[self.webView.configuration.userContentController addUserScript:js];</span><br><span class="line"></span><br><span class="line"><span class="comment">//注册分享回调</span></span><br><span class="line">[self.webView.configuration.userContentController addScriptMessageHandler:self name:@<span class="string">"nativeShare"</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">// 注册添加联系人的回调</span></span><br><span class="line">[self.webView.configuration.userContentController addScriptMessageHandler:self name:@<span class="string">"nativeChoosePhoneContact"</span>];</span><br></pre></td></tr></table></figure>
+<h3 id="JS端实现方式"><a href="#JS端实现方式" class="headerlink" title="JS端实现方式"></a>JS端实现方式</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Native为H5提供的Api接口</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @type &#123;js对象&#125;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">var</span> DANativeApi = (<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> NativeApi = &#123;</span><br><span class="line">		<span class="comment">/**</span></span><br><span class="line"><span class="comment">		 * 分享</span></span><br><span class="line"><span class="comment">		 * @param  &#123;js对象&#125; shareInfo 分享信息和回调</span></span><br><span class="line"><span class="comment">		 * @return &#123;void&#125;           无同步返回值，异步返回分享结果 true or false</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		share: <span class="function"><span class="keyword">function</span>(<span class="params">shareInfo</span>) </span>&#123;</span><br><span class="line">			<span class="keyword">if</span> (shareInfo == <span class="literal">undefined</span> || shareInfo == <span class="literal">null</span> || <span class="keyword">typeof</span>(shareInfo) !== <span class="string">"object"</span>) &#123;</span><br><span class="line">				alert(<span class="string">"参数"</span> + <span class="built_in">JSON</span>.stringify(shareInfo) + <span class="string">"不合法"</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				alert(<span class="string">"分享的参数为"</span> + <span class="built_in">JSON</span>.stringify(shareInfo));</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">//调用native端</span></span><br><span class="line">			_nativeShare(shareInfo);</span><br><span class="line">		&#125;,</span><br><span class="line">		<span class="comment">/**</span></span><br><span class="line"><span class="comment">		 * 从通讯录选择联系人</span></span><br><span class="line"><span class="comment">		 * @return &#123;void&#125; 无同步返回值，异步返回选择的结果</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		choosePhoneContact: <span class="function"><span class="keyword">function</span>(<span class="params">param</span>) </span>&#123;</span><br><span class="line">			<span class="comment">//具体是否需要判断</span></span><br><span class="line">			<span class="comment">//调用native端</span></span><br><span class="line">			_nativeChoosePhoneContact(param);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//下面是一些私有函数</span></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Native端实现，适用于WKWebView，UIWebView如何实现，小伙伴自己动脑筋吧~</span></span><br><span class="line"><span class="comment">	 * @param  &#123;js对象&#125; shareInfo 分享的信息和回调</span></span><br><span class="line"><span class="comment">	 * @return &#123;void&#125;           无同步返回值，异步返回</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">_nativeShare</span>(<span class="params">shareInfo</span>) </span>&#123;</span><br><span class="line">		<span class="comment">//用于WKWebView，因为WKWebView并没有办法把js function传递过去，因此需要特殊处理一下</span></span><br><span class="line">		<span class="comment">//把js function转换为字符串，oc端调用时 (&lt;js function string&gt;)(true); 即可</span></span><br><span class="line">		<span class="comment">//如果有回调函数，且为function</span></span><br><span class="line">		<span class="keyword">var</span> callbackFunction = shareInfo.result;</span><br><span class="line">		<span class="keyword">if</span> (callbackFunction != <span class="literal">undefined</span> &amp;&amp; callbackFunction != <span class="literal">null</span> &amp;&amp; <span class="keyword">typeof</span>(callbackFunction) === <span class="string">"function"</span>) &#123;</span><br><span class="line">			shareInfo.result = callbackFunction.toString();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//js -&gt; oc </span></span><br><span class="line">		<span class="comment">// 至于Android端，也可以，比如 window.jsInterface.nativeShare(JSON.stringify(shareInfo));</span></span><br><span class="line">		<span class="built_in">window</span>.webkit.messageHandlers.nativeShare.postMessage(shareInfo);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Native端实现选择联系人，并异步返回结果</span></span><br><span class="line"><span class="comment">	 * @param  &#123;[type]&#125; param [description]</span></span><br><span class="line"><span class="comment">	 * @return &#123;[type]&#125;       [description]</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">_nativeChoosePhoneContact</span>(<span class="params">param</span>) </span>&#123;</span><br><span class="line">		<span class="keyword">var</span> callbackFunction = param.completion;</span><br><span class="line">		<span class="keyword">if</span> (callbackFunction != <span class="literal">undefined</span> &amp;&amp; callbackFunction != <span class="literal">null</span> &amp;&amp; <span class="keyword">typeof</span>(callbackFunction) === <span class="string">"function"</span>) &#123;</span><br><span class="line">			param.completion = callbackFunction.toString();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//js -&gt; oc </span></span><br><span class="line">		<span class="built_in">window</span>.webkit.messageHandlers.nativeChoosePhoneContact.postMessage(param);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//闭包，把Api对象返回</span></span><br><span class="line">	<span class="keyword">return</span> NativeApi;</span><br><span class="line">&#125;)();</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">//调用时，分享</span></span><br><span class="line"><span class="comment">DANativeApi.share(&#123;</span></span><br><span class="line"><span class="comment">	title: document.title,</span></span><br><span class="line"><span class="comment">	desc: "",</span></span><br><span class="line"><span class="comment">	url: location.href,</span></span><br><span class="line"><span class="comment">	imgUrl: "",</span></span><br><span class="line"><span class="comment">	result: function(res) &#123;</span></span><br><span class="line"><span class="comment">		// body...</span></span><br><span class="line"><span class="comment">		alert("分享结果为：" + JSON.stringify(res));</span></span><br><span class="line"><span class="comment">	&#125;</span></span><br><span class="line"><span class="comment">&#125;);</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">//选择联系人</span></span><br><span class="line"><span class="comment">DANativeApi.choosePhoneContact(&#123;</span></span><br><span class="line"><span class="comment">	completion: function(res) &#123;</span></span><br><span class="line"><span class="comment">		alert("选择联系人的结果为：" + JSON.stringify(res));</span></span><br><span class="line"><span class="comment">	&#125;</span></span><br><span class="line"><span class="comment">&#125;);</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+<h3 id="释放回调"><a href="#释放回调" class="headerlink" title="释放回调"></a>释放回调</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)dealloc</span><br><span class="line">&#123;</span><br><span class="line"><span class="comment">// 注册的回调要及时释放，防止强引用，循环引用</span></span><br><span class="line">    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@<span class="string">"nativeShare"</span>];</span><br><span class="line">    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@<span class="string">"nativeChoosePhoneContact"</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="OC调用JS"><a href="#OC调用JS" class="headerlink" title="OC调用JS"></a>OC调用JS</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将分享结果返回给js</span></span><br><span class="line">    NSString *jsStr = [NSString stringWithFormat:@<span class="string">"shareResult('%@','%@','%@')"</span>,title,content,url];</span><br><span class="line">    [self.webView evaluateJavaScript:jsStr completionHandler:^(id _Nullable result, NSError * _Nullable error) &#123;</span><br><span class="line">        NSLog(@<span class="string">"%@----%@"</span>,result, error);</span><br><span class="line">    &#125;];</span><br></pre></td></tr></table></figure>
+<h3 id="实现WKScriptMessageHandler协议方法-JS调用OC"><a href="#实现WKScriptMessageHandler协议方法-JS调用OC" class="headerlink" title="实现WKScriptMessageHandler协议方法(JS调用OC)"></a>实现WKScriptMessageHandler协议方法(JS调用OC)</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">#pragma mark - WKScriptMessageHandler </span><br><span class="line">- (<span class="keyword">void</span>)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message</span><br><span class="line">&#123;</span><br><span class="line"><span class="comment">// 分享</span></span><br><span class="line"> <span class="keyword">if</span> ( [message.name isEqualToString:@<span class="string">"nativeShare"</span>]) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// JS -&gt;OC</span></span><br><span class="line">        <span class="comment">// 第一步，处理分享数据</span></span><br><span class="line">        NSDictionary *shareData = message.body;</span><br><span class="line">        NSLog(@<span class="string">"%@分享的数据为： %@"</span>, message.name, shareData);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 第二步，弹出分享的图层，执行分享操作</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 第三部，模拟异步回调，将分享状态反馈给JS端</span></span><br><span class="line">        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(<span class="number">4</span> * NSEC_PER_SEC)), dispatch_get_main_queue(), ^&#123;</span><br><span class="line"></span><br><span class="line">            <span class="comment">//读取js function的字符串</span></span><br><span class="line">            NSString *jsFunctionString = shareData[@<span class="string">"result"</span>];</span><br><span class="line"></span><br><span class="line">            <span class="comment">//拼接调用该方法的js字符串</span></span><br><span class="line">            NSString *callbackJs = [NSString stringWithFormat:@<span class="string">"(%@)(%d);"</span>, jsFunctionString, NO];    <span class="comment">//后面的参数NO为模拟分享失败</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">//执行回调OC-&gt;JS，调用JS端的方法，将分享状态告知js,然后evaluateJavaScript:completionHandler的回调处理JS对于分享状态反馈的回应。</span></span><br><span class="line">            [self.webView evaluateJavaScript:callbackJs completionHandler:^(id _Nullable result, NSError * _Nullable error) &#123;</span><br><span class="line">                <span class="keyword">if</span> (!error) &#123;</span><br><span class="line">                    NSLog(@<span class="string">"模拟回调，分享失败"</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;];</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">   </span><br><span class="line">    <span class="comment">//选择联系人</span></span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> ([message.name isEqualToString:@<span class="string">"nativeChoosePhoneContact"</span>]) &#123;</span><br><span class="line">     </span><br><span class="line">        [self selectContactCompletion:^(NSString *name, NSString *phone) &#123;</span><br><span class="line">            NSLog(@<span class="string">"选择完成"</span>);</span><br><span class="line">            <span class="comment">//读取js function的字符串</span></span><br><span class="line">            NSString *jsFunctionString = message.body[@<span class="string">"completion"</span>];</span><br><span class="line">            <span class="comment">//拼接调用该方法的js字符串</span></span><br><span class="line">            NSString *callbackJs = [NSString stringWithFormat:@<span class="string">"(%@)(&#123;name: '%@', mobile: '%@'&#125;);"</span>, jsFunctionString, name, phone];</span><br><span class="line">            <span class="comment">//执行回调</span></span><br><span class="line">            [self.webView evaluateJavaScript:callbackJs completionHandler:^(id _Nullable result, NSError * _Nullable error) &#123;</span><br><span class="line">                </span><br><span class="line">            &#125;];</span><br><span class="line">        &#125;];</span><br><span class="line">    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="WKWebView中的属性和方法解析"><a href="#WKWebView中的属性和方法解析" class="headerlink" title="WKWebView中的属性和方法解析"></a>WKWebView中的属性和方法解析</h2><h3 id="常用的属性和方法"><a href="#常用的属性和方法" class="headerlink" title="常用的属性和方法"></a>常用的属性和方法</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//设置导航代理</span></span><br><span class="line">@property (nullable, nonatomic, weak) id &lt;WKNavigationDelegate&gt; navigationDelegate;</span><br><span class="line"><span class="comment">//设置UI代理</span></span><br><span class="line">@property (nullable, nonatomic, weak) id &lt;WKUIDelegate&gt; UIDelegate;</span><br><span class="line"><span class="comment">//导航列表</span></span><br><span class="line">@property (nonatomic, readonly, strong) WKBackForwardList *backForwardList;</span><br><span class="line"><span class="comment">//通过url加载网页视图</span></span><br><span class="line">- (nullable WKNavigation *)loadRequest:(NSURLRequest *)request;</span><br><span class="line"><span class="comment">//通过文件加载网页视图</span></span><br><span class="line">- (nullable WKNavigation *)loadFileURL:(NSURL *)URL allowingReadAccessToURL:(NSURL *)readAccessURL NS_AVAILABLE(<span class="number">10</span>_11, <span class="number">9</span>_0);</span><br><span class="line"><span class="comment">//通过HTML字符串加载网页视图</span></span><br><span class="line">- (nullable WKNavigation *)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;</span><br><span class="line"><span class="comment">//通过data数据加载网页视图</span></span><br><span class="line">- (nullable WKNavigation *)loadData:(NSData *)data MIMEType:(NSString *)MIMEType characterEncodingName:(NSString *)characterEncodingName baseURL:(NSURL *)baseURL NS_AVAILABLE(<span class="number">10</span>_11, <span class="number">9</span>_0);</span><br><span class="line"><span class="comment">//渲染导航列表中的某个网页节点</span></span><br><span class="line">- (nullable WKNavigation *)goToBackForwardListItem:(WKBackForwardListItem *)item;</span><br><span class="line"><span class="comment">//网页标题</span></span><br><span class="line">@property (nullable, nonatomic, readonly, copy) NSString *title;</span><br><span class="line"><span class="comment">//网页的url</span></span><br><span class="line">@property (nullable, nonatomic, readonly, copy) NSURL *URL;</span><br><span class="line"><span class="comment">//网页是否正在加载中</span></span><br><span class="line">@property (nonatomic, readonly, getter=isLoading) BOOL loading;</span><br><span class="line"><span class="comment">//加载进度 可以监听这个属性的值配合UIProgressView来设计进度条</span></span><br><span class="line">@property (nonatomic, readonly) double estimatedProgress;</span><br><span class="line"><span class="comment">//是否全部是安全连接</span></span><br><span class="line">@property (nonatomic, readonly) BOOL hasOnlySecureContent;</span><br><span class="line"><span class="comment">//证书列表</span></span><br><span class="line">@property (nonatomic, readonly, copy) NSArray *certificateChain;</span><br><span class="line"><span class="comment">//是否可以回退</span></span><br><span class="line">@property (nonatomic, readonly) BOOL canGoBack;</span><br><span class="line"><span class="comment">//是否可以前进</span></span><br><span class="line">@property (nonatomic, readonly) BOOL canGoForward;</span><br><span class="line"><span class="comment">//回退网页</span></span><br><span class="line">- (nullable WKNavigation *)goBack;</span><br><span class="line"><span class="comment">//前进网页</span></span><br><span class="line">- (nullable WKNavigation *)goForward;</span><br><span class="line"><span class="comment">//刷新网页</span></span><br><span class="line">- (nullable WKNavigation *)reload;</span><br><span class="line"><span class="comment">//忽略缓存的刷新</span></span><br><span class="line">- (nullable WKNavigation *)reloadFromOrigin;</span><br><span class="line"><span class="comment">//停止加载</span></span><br><span class="line">- (<span class="keyword">void</span>)stopLoading;</span><br><span class="line"><span class="comment">//执行JavaScript代码</span></span><br><span class="line">- (<span class="keyword">void</span>)evaluateJavaScript:(NSString *)javaScriptString completionHandler:(<span class="keyword">void</span> (^ __nullable)(__nullable id, NSError * __nullable error))completionHandler;</span><br><span class="line"><span class="comment">//是否允许右滑返回手势</span></span><br><span class="line">@property (nonatomic) BOOL allowsBackForwardNavigationGestures;</span><br></pre></td></tr></table></figure>
+<h3 id="WKBackForwardList类为导航管理的网页列表类"><a href="#WKBackForwardList类为导航管理的网页列表类" class="headerlink" title="WKBackForwardList类为导航管理的网页列表类"></a>WKBackForwardList类为导航管理的网页列表类</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">@interface WKBackForwardList : NSObject</span><br><span class="line"><span class="comment">//当前所在的网页节点</span></span><br><span class="line">@property (nullable, nonatomic, readonly, strong) WKBackForwardListItem *currentItem;</span><br><span class="line"><span class="comment">//前进的一个网页节</span></span><br><span class="line">@property (nullable, nonatomic, readonly, strong) WKBackForwardListItem *forwardItem;</span><br><span class="line"><span class="comment">//回退的一个网页节点</span></span><br><span class="line">@property (nullable, nonatomic, readonly, strong) WKBackForwardListItem *backItem;</span><br><span class="line"><span class="comment">//获取某个index的网页节点</span></span><br><span class="line">- (nullable WKBackForwardListItem *)itemAtIndex:(NSInteger)index;</span><br><span class="line"><span class="comment">//获取回退的节点数组</span></span><br><span class="line">@property (nonatomic, readonly, copy) NSArray&lt;WKBackForwardListItem *&gt; *backList;</span><br><span class="line"><span class="comment">//获取前进的节点数组</span></span><br><span class="line">@property (nonatomic, readonly, copy) NSArray&lt;WKBackForwardListItem *&gt; *forwardList;</span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h3 id="WKBackForwardListItem-网页节点"><a href="#WKBackForwardListItem-网页节点" class="headerlink" title="WKBackForwardListItem 网页节点"></a>WKBackForwardListItem 网页节点</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">@interface WKBackForwardListItem : NSObject</span><br><span class="line"><span class="comment">//当前节点的URL</span></span><br><span class="line">@property (readonly, copy) NSURL *URL;</span><br><span class="line"><span class="comment">//当前节点的标题</span></span><br><span class="line">@property (nullable, readonly, copy) NSString *title;</span><br><span class="line"><span class="comment">//创建此WebView的初始URL</span></span><br><span class="line">@property (readonly, copy) NSURL *initialURL;</span><br></pre></td></tr></table></figure>
+<h3 id="WKUserScript"><a href="#WKUserScript" class="headerlink" title="WKUserScript"></a>WKUserScript</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//注入的js代码的脚本</span></span><br><span class="line">    WKUserScript *js = [[WKUserScript alloc] initWithSource:jsSource injectionTime:WKUserScriptInjectionTimeAtDocumentEnd forMainFrameOnly:NO];</span><br><span class="line">    [self.webView.configuration.userContentController addUserScript:js];</span><br><span class="line"></span><br><span class="line"><span class="comment">/*source为要注入的js代码</span></span><br><span class="line"><span class="comment">WKUserScriptInjectionTime设置注入的时机forMainFrameOnly参数设置是否只在主页面注入</span></span><br><span class="line"><span class="comment">typedef NS_ENUM(NSInteger, WKUserScriptInjectionTime) &#123;</span></span><br><span class="line"><span class="comment">    //原js代码运行前注入</span></span><br><span class="line"><span class="comment">    WKUserScriptInjectionTimeAtDocumentStart,</span></span><br><span class="line"><span class="comment">    //原js代码运行后注入</span></span><br><span class="line"><span class="comment">    WKUserScriptInjectionTimeAtDocumentEnd</span></span><br><span class="line"><span class="comment">&#125; NS_ENUM_AVAILABLE(10_10, 8_0);</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line">- (instancetype)initWithSource:(NSString *)source injectionTime:(WKUserScriptInjectionTime)injectionTime forMainFrameOnly:(BOOL)forMainFrameOnly;</span><br></pre></td></tr></table></figure>
+<h2 id="WKNavagationDelegate协议"><a href="#WKNavagationDelegate协议" class="headerlink" title="WKNavagationDelegate协议"></a>WKNavagationDelegate协议</h2><p>该代理提供的方法，可以用来追踪加载过程（页面开始加载、加载完成、加载失败）、决定是否执行跳转。<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//追踪加载过程</span></span><br><span class="line"><span class="comment">// 页面开始加载时调用</span></span><br><span class="line">-(<span class="keyword">void</span>)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 当内容开始返回时调用</span></span><br><span class="line">- (<span class="keyword">void</span>)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 页面加载完成之后调用</span></span><br><span class="line">-(<span class="keyword">void</span>)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 页面加载失败时调用</span></span><br><span class="line"> -(<span class="keyword">void</span>)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 页面跳转的代理方法有三种，分为（收到跳转与决定是否跳转两种）：</span></span><br><span class="line"><span class="comment">// 接收到服务器跳转请求之后调用</span></span><br><span class="line"> -(<span class="keyword">void</span>)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation;</span><br><span class="line"></span><br><span class="line"> <span class="comment">// 在收到响应后，决定是否跳转</span></span><br><span class="line"> -(<span class="keyword">void</span>)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(<span class="keyword">void</span> (^)(WKNavigationResponsePolicy))decisionHandler;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">在发送请求之前，决定是否跳转,决定是否响应网页的某个动作，例如加载，回退，前进，刷新等，在这个方法中，必须执行decisionHandler()代码块，并将是否允许这个活动执行在block中进行传入</span></span><br><span class="line"><span class="comment">*/</span><span class="comment">/*</span></span><br><span class="line"><span class="comment">WKNavigationAction是网页动作的抽象化，其中封装了许多行为信息，后面会介绍</span></span><br><span class="line"><span class="comment">WKNavigationActionPolicy为开发者回执，枚举如下：</span></span><br><span class="line"><span class="comment">typedef NS_ENUM(NSInteger, WKNavigationActionPolicy) &#123;</span></span><br><span class="line"><span class="comment">    //取消此次行为</span></span><br><span class="line"><span class="comment">    WKNavigationActionPolicyCancel,</span></span><br><span class="line"><span class="comment">    //允许此次行为</span></span><br><span class="line"><span class="comment">    WKNavigationActionPolicyAllow,</span></span><br><span class="line"><span class="comment">&#125; NS_ENUM_AVAILABLE(10_10, 8_0);</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line">-(<span class="keyword">void</span>)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(<span class="keyword">void</span> (^)(WKNavigationActionPolicy))decisionHandler&#123;</span><br><span class="line">    decisionHandler(WKNavigationActionPolicyAllow);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="WKUIDelegate协议"><a href="#WKUIDelegate协议" class="headerlink" title="WKUIDelegate协议"></a>WKUIDelegate协议</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">//创建新的webView时调用的方法</span></span><br><span class="line">-(WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures&#123;    <span class="keyword">return</span> webView;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//关闭webView时调用的方法</span></span><br><span class="line">-(<span class="keyword">void</span>)webViewDidClose:(WKWebView *)webView&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//下面这些方法是交互JavaScript的方法</span></span><br><span class="line"><span class="comment">//JavaScript调用alert方法后回调的方法 message中为alert提示的信息 必须要在其中调用completionHandler()</span></span><br><span class="line">-(<span class="keyword">void</span>)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(<span class="keyword">void</span> (^)(<span class="keyword">void</span>))completionHandler&#123;    NSLog(@<span class="string">"%@"</span>,message);</span><br><span class="line">    completionHandler();</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//JavaScript调用confirm方法后回调的方法 confirm是js中的确定框，需要在block中把用户选择的情况传递进去</span></span><br><span class="line">-(<span class="keyword">void</span>)webView:(WKWebView *)webView runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(<span class="keyword">void</span> (^)(BOOL))completionHandler&#123;    NSLog(@<span class="string">"%@"</span>,message);</span><br><span class="line">    completionHandler(YES);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//JavaScript调用prompt方法后回调的方法 prompt是js中的输入框 需要在block中把用户输入的信息传入</span></span><br><span class="line">-(<span class="keyword">void</span>)webView:(WKWebView *)webView runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WKFrameInfo *)frame completionHandler:(<span class="keyword">void</span> (^)(NSString * _Nullable))completionHandler&#123;    NSLog(@<span class="string">"%@"</span>,prompt);</span><br><span class="line">    completionHandler(@<span class="string">"123"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="WKNavagationAction类"><a href="#WKNavagationAction类" class="headerlink" title="WKNavagationAction类"></a>WKNavagationAction类</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">@interface WKNavigationAction : NSObject</span><br><span class="line"><span class="comment">//原页面</span></span><br><span class="line">@property (nonatomic, readonly, copy) WKFrameInfo *sourceFrame;</span><br><span class="line"><span class="comment">//目标页面</span></span><br><span class="line">@property (nullable, nonatomic, readonly, copy) WKFrameInfo *targetFrame;</span><br><span class="line"><span class="comment">//请求URL</span></span><br><span class="line">@property (nonatomic, readonly, copy) NSURLRequest *request;</span><br><span class="line"></span><br><span class="line"><span class="comment">//活动类型/*typedef NS_ENUM(NSInteger, WKNavigationType) &#123;</span></span><br><span class="line">    <span class="comment">//链接激活    WKNavigationTypeLinkActivated,</span></span><br><span class="line">    <span class="comment">//提交操作    WKNavigationTypeFormSubmitted,</span></span><br><span class="line">    <span class="comment">//前进操作    WKNavigationTypeBackForward,</span></span><br><span class="line">    <span class="comment">//刷新操作    WKNavigationTypeReload,</span></span><br><span class="line">    <span class="comment">//重提交操作 例如前进 后退 刷新    WKNavigationTypeFormResubmitted,</span></span><br><span class="line">    <span class="comment">//其他类型</span></span><br><span class="line">    WKNavigationTypeOther = <span class="number">-1</span>,</span><br><span class="line">&#125; NS_ENUM_AVAILABLE(<span class="number">10</span>_10, <span class="number">8</span>_0);</span><br><span class="line">*<span class="regexp">/</span></span><br><span class="line"><span class="regexp"></span></span><br><span class="line"><span class="regexp">@property (nonatomic, readonly) WKNavigationType navigationType;</span></span><br><span class="line"><span class="regexp">@end</span></span><br></pre></td></tr></table></figure>
+<h2 id="我的简书"><a href="#我的简书" class="headerlink" title="我的简书"></a>我的简书</h2><p><a href="https://www.jianshu.com/p/f269d2741fa2" target="_blank" rel="noopener">我的简书</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag"># iOS</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/01/03/线程安全与锁/" rel="next" title="线程安全与锁">
+                <i class="fa fa-chevron-left"></i> 线程安全与锁
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/01/09/CoreML框架的研究与应用/" rel="prev" title="CoreML框架的研究与应用">
+                CoreML框架的研究与应用 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          
+            <p class="site-author-name" itemprop="name">既白</p>
+            <p class="site-description motion-element" itemprop="description">card</p>
+        </div>
+
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+            
+              <a href="/archives/">
+            
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重点注意"><span class="nav-number">2.</span> <span class="nav-text">重点注意</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WebKit核新的类和协议"><span class="nav-number">3.</span> <span class="nav-text">WebKit核新的类和协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#WebbView初始化"><span class="nav-number">3.1.</span> <span class="nav-text">WebbView初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#初始化函数"><span class="nav-number">3.1.1.</span> <span class="nav-text">初始化函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#加载方式，建议使用苹果推荐使用的函数"><span class="nav-number">3.1.2.</span> <span class="nav-text">加载方式，建议使用苹果推荐使用的函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#WKWebViewConfiguration内容配置"><span class="nav-number">3.1.3.</span> <span class="nav-text">WKWebViewConfiguration内容配置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JS-gt-OC，OC-gt-JS-交互流程"><span class="nav-number">4.</span> <span class="nav-text">JS-&gt;OC，OC-&gt;JS 交互流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Native-实现方式"><span class="nav-number">4.1.</span> <span class="nav-text">Native 实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JS端实现方式"><span class="nav-number">4.2.</span> <span class="nav-text">JS端实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#释放回调"><span class="nav-number">4.3.</span> <span class="nav-text">释放回调</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OC调用JS"><span class="nav-number">4.4.</span> <span class="nav-text">OC调用JS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#实现WKScriptMessageHandler协议方法-JS调用OC"><span class="nav-number">4.5.</span> <span class="nav-text">实现WKScriptMessageHandler协议方法(JS调用OC)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WKWebView中的属性和方法解析"><span class="nav-number">5.</span> <span class="nav-text">WKWebView中的属性和方法解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#常用的属性和方法"><span class="nav-number">5.1.</span> <span class="nav-text">常用的属性和方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WKBackForwardList类为导航管理的网页列表类"><span class="nav-number">5.2.</span> <span class="nav-text">WKBackForwardList类为导航管理的网页列表类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WKBackForwardListItem-网页节点"><span class="nav-number">5.3.</span> <span class="nav-text">WKBackForwardListItem 网页节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WKUserScript"><span class="nav-number">5.4.</span> <span class="nav-text">WKUserScript</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WKNavagationDelegate协议"><span class="nav-number">6.</span> <span class="nav-text">WKNavagationDelegate协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WKUIDelegate协议"><span class="nav-number">7.</span> <span class="nav-text">WKUIDelegate协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WKNavagationAction类"><span class="nav-number">8.</span> <span class="nav-text">WKNavagationAction类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#我的简书"><span class="nav-number">9.</span> <span class="nav-text">我的简书</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy;  2017 &mdash; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">既白</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+  <span class="post-meta-divider">|</span>
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.2</div>
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+  
+  <script type="text/javascript" src="/lib/canvas-nest/canvas-nest.min.js"></script>
+
+  
+  <script type="text/javascript" src="/lib/three/three.min.js"></script>
+
+  
+  <script type="text/javascript" src="/lib/three/canvas_sphere.min.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://既白.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/01/05/WebKit内核的研究与应用/';
+          this.page.identifier = '2018/01/05/WebKit内核的研究与应用/';
+          this.page.title = 'WebKit内核的研究与应用';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://既白.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
