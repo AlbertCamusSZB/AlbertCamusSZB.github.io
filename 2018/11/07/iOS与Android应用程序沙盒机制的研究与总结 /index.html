@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="iOS,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="简介复杂系统始终存在漏洞, 软件复杂性只会随着时间的推移而增加。无论您如何谨慎地采用安全编码实践并防范错误, 攻击者只需通过一次防御即可成功。虽然应用沙盒不能防止对你的应用的攻击, 但它确实最大限度地减少了成功应用可能造成的危害。 非沙盒应用具有运行该应用的用户的完全权限, 并且可以访问用户也可以访问的任何资源。如果该应用或它所链接的任何框架包含安全漏洞, 攻击者可能会利用这些漏洞来控制该应用,">
+<meta name="keywords" content="iOS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="iOS与Android应用程序沙盒机制的研究与总结">
+<meta property="og:url" content="http://yoursite.com/2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /index.html">
+<meta property="og:site_name" content="既白">
+<meta property="og:description" content="简介复杂系统始终存在漏洞, 软件复杂性只会随着时间的推移而增加。无论您如何谨慎地采用安全编码实践并防范错误, 攻击者只需通过一次防御即可成功。虽然应用沙盒不能防止对你的应用的攻击, 但它确实最大限度地减少了成功应用可能造成的危害。 非沙盒应用具有运行该应用的用户的完全权限, 并且可以访问用户也可以访问的任何资源。如果该应用或它所链接的任何框架包含安全漏洞, 攻击者可能会利用这些漏洞来控制该应用,">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/1334311-ea420c8aa0579b47.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/1334311-1e7154293afd32e0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2018-11-07T09:26:40.368Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iOS与Android应用程序沙盒机制的研究与总结">
+<meta name="twitter:description" content="简介复杂系统始终存在漏洞, 软件复杂性只会随着时间的推移而增加。无论您如何谨慎地采用安全编码实践并防范错误, 攻击者只需通过一次防御即可成功。虽然应用沙盒不能防止对你的应用的攻击, 但它确实最大限度地减少了成功应用可能造成的危害。 非沙盒应用具有运行该应用的用户的完全权限, 并且可以访问用户也可以访问的任何资源。如果该应用或它所链接的任何框架包含安全漏洞, 攻击者可能会利用这些漏洞来控制该应用,">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/1334311-ea420c8aa0579b47.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /">
+
+
+
+
+
+  <title>iOS与Android应用程序沙盒机制的研究与总结 | 既白</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?6f2357622e0d1dc032d88686b74381ff";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">既白</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="既白">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="既白">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">iOS与Android应用程序沙盒机制的研究与总结</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-07T17:09:00+08:00">
+                2018-11-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/iOS开发/" itemprop="url" rel="index">
+                    <span itemprop="name">iOS开发</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>复杂系统始终存在漏洞, 软件复杂性只会随着时间的推移而增加。无论您如何谨慎地采用安全编码实践并防范错误, 攻击者只需通过一次防御即可成功。虽然应用沙盒不能防止对你的应用的攻击, 但它确实最大限度地减少了成功应用可能造成的危害。</p>
+<p>非沙盒应用具有运行该应用的用户的完全权限, 并且可以访问用户也可以访问的任何资源。如果该应用或它所链接的任何框架包含安全漏洞, 攻击者可能会利用这些漏洞来控制该应用, 并且在此过程中, 攻击者可以执行用户可以执行的任何操作。</p>
+<a id="more"></a>
+<h2 id="iOS应用程序沙盒"><a href="#iOS应用程序沙盒" class="headerlink" title="iOS应用程序沙盒"></a>iOS应用程序沙盒</h2><p>沙盒你的应用是保护系统和用户的好方法, 方法是将应用的权限限制在其预期功能范围内, 从而增加恶意软件危害用户系统的难度。</p>
+<p>应用沙盒策略旨在缓解此问题, 它有两个方面:</p>
+<ul>
+<li>应用沙盒使你能够描述你的应用如何与系统交互。然后,<strong>系统授予你的应用完成其工作所需的访问权限, 而不是更多</strong>。</li>
+<li>app sandbox <strong>允许用户通过 “打开” 和 “保存” 对话框、拖放和其他熟悉的用户交互, 透明地授予你的应用额外访问权限</strong>。</li>
+</ul>
+<h3 id="应用程序沙盒是基于几个直接的原则"><a href="#应用程序沙盒是基于几个直接的原则" class="headerlink" title="应用程序沙盒是基于几个直接的原则"></a>应用程序沙盒是基于几个直接的原则</h3><p>通过限制对每个应用上的敏感资源的访问, app sandbox 提供了最后一道防线, 以防止用户数据被盗、损坏或删除, 或在攻击者成功利用应用中的安全漏洞的情况下劫持系统硬件。例如, 沙盒应用必须明确声明其使用以下任何资源使用权限的意图:</p>
+<ul>
+<li>硬件 (相机、麦克风、usb、打印机)</li>
+<li>网络连接 (入站或出站)</li>
+<li>应用数据 (日历、位置、联系人)</li>
+<li>用户文件 (下载、图片、音乐、电影、用户选择的文件)</li>
+</ul>
+<p>系统会在运行时拒绝对项目定义中未明确请求的任何资源的访问。例如, 如果你正在编写草图应用, 并且你知道你的应用永远不需要访问麦克风, 你根本不要求访问, 系统知道拒绝你 (可能被破坏的) 应用使用它的任何尝试。</p>
+<p>另一方面, 沙盒应用可以访问您请求的特定资源, 允许用户通过以通常的方式执行典型操作 (如拖放) 来展开沙盒, 并可以自动执行许多被认为安全的其他操作, 包括:</p>
+<ul>
+<li>从 “服务” 菜单调用服务</li>
+<li>读取世界上最可读的系统文件</li>
+<li>打开用户选择的文件</li>
+</ul>
+<p><strong><code>app sandbox</code> 的元素包括权限、容器目录、用户确定的权限、权限分离和内核强制。通过协同工作, 这些方法阻止应用访问比完成其工作所需的更多的系统。</strong></p>
+<h3 id="iOS文件系统"><a href="#iOS文件系统" class="headerlink" title="iOS文件系统"></a>iOS文件系统</h3><p><img src="https://upload-images.jianshu.io/upload_images/1334311-ea420c8aa0579b47.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=" iOS文件系统"></p>
+<p><strong>通常禁止应用访问或创建其容器目录之外的文件。此规则的一个例外是, 应用使用公共系统接口访问用户的联系人或音乐等内容。在这些情况下, 系统框架使用帮助器应用程序来处理从相应的数据存储中读取或修改相应数据存储所需的任何与文件相关的操作</strong></p>
+<h4 id="1-0应用名称-app"><a href="#1-0应用名称-app" class="headerlink" title="1. 0应用名称.app"></a>1. 0应用名称.app</h4><p>这是应用程序的捆绑。此目录包含应用及其所有资源。您不能写入此目录。为了防止篡改, 在安装时对捆绑目录进行签名。写入此目录会更改签名并阻止你的应用启动。但是, 您可以获得对存储在应用包中的任何资源的只读访问权限。<br><strong>itunes 或 icloud 不会备份此目录的内容。但是, itunes 确实会对从应用商店购买的任何应用进行初始同步。</strong></p>
+<h4 id="2-0-Documents"><a href="#2-0-Documents" class="headerlink" title="2.0 Documents/"></a>2.0 Documents/</h4><p>使用此目录可以存储用户生成的内容。此目录的内容可以通过文件共享提供给存放应用程序的数据 (苹果建议将程序中建立的或在程序中浏览到的文件数据保存在该目录下，iTunes备份和恢复的时候会包括此目录);</p>
+<h4 id="3-0-Library"><a href="#3-0-Library" class="headerlink" title="3.0 /Library"></a>3.0 /Library</h4><p>存储程序的默认设置或其它状态信息，子文件夹有<code>Caces</code>, <code>Preferences</code></p>
+<ul>
+<li><code>/Caches</code>: 保存用户使用应用程序时产生的缓存文件, 比如网络请求的数据. 应用程序通常还需要负责删除这些文件. 不会被<code>iTunes</code>同步;</li>
+<li><code>/Preferences</code>: 应用程序的偏好设置文件. 我们使用<code>NSUserDefaults</code>写的设置数据都会保存到该目录下的一个<code>plist</code>文件中，这就是所谓的写入<code>plist</code>中. 会被<code>iTunes</code>同步;</li>
+</ul>
+<h4 id="4-0-tmp"><a href="#4-0-tmp" class="headerlink" title="4.0 /tmp"></a>4.0 /tmp</h4><p>应用程序存储的临时文件(应用程序再次启动时不需要的文件). 比如系统磁盘存储空间不足的时候, 该目录下的文件随时有可能被系统清理掉.不会被<code>iTunes</code>同步.</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1334311-1e7154293afd32e0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="iOS沙盒目录及功能介绍"></p>
+<h2 id="Android-应用程序沙盒"><a href="#Android-应用程序沙盒" class="headerlink" title="Android 应用程序沙盒"></a>Android 应用程序沙盒</h2><p><code>Android</code> 应用采用 <code>Java</code> 编程语言编写。<code>Android SDK</code> 工具将您的代码 — 连同任何数据和资源文件 — 编译到一个 <code>APK：Android</code> 软件包，即带有<code>.apk</code> 后缀的存档文件中。一个 <code>APK</code> 文件包含 <code>Android</code> 应用的所有内容，它是基于 <code>Android</code> 系统的设备用来安装应用的文件。</p>
+<p>安装到设备后，每个 <code>Android</code> 应用都运行在自己的安全沙箱内：</p>
+<ul>
+<li><code>Android</code> 操作系统是一种多用户 <code>Linux</code> 系统，其中的每个应用都是一个不同的用户；<br>默认情况下，系统会为每个应用分配一个唯一的 <code>Linux</code> 用户 <code>ID</code>（该 <code>ID</code> 仅由系统使用，应用并不知晓）。系统为应用中的所有文件设置权限，使得只有分配给该应用的用户 <code>ID</code> 才能访问这些文件；</li>
+<li>每个进程都具有自己的虚拟机 <code>(VM)</code>，因此应用代码是在与其他应用隔离的环境中运行；<br>默认情况下，每个应用都在其自己的 <code>Linux</code> 进程内运行。<code>Android</code>会在需要执行任何应用组件时启动该进程，然后在不再需要该进程或系统必须为其他应用恢复内存时关闭该进程。<br><code>Android</code> 系统可以通过这种方式实现最小权限原则。也就是说，默认情况下，每个应用都只能访问执行其工作所需的组件，而不能访问其他组件。这样便营造出一个非常安全的环境，在这个环境中，应用无法访问系统中其未获得权限的部分。</li>
+</ul>
+<p><strong><code>Android</code> 系统可以通过这种方式实现最小权限原则。也就是说，默认情况下，每个应用都只能访问执行其工作所需的组件，而不能访问其他组件。这样便营造出一个非常安全的环境，在这个环境中，应用无法访问系统中其未获得权限的部分。</strong></p>
+<p>不过，应用仍然可以通过一些途径与其他应用共享数据以及访问系统服务：</p>
+<ul>
+<li><strong>可以安排两个应用共享同一 <code>Linux</code> 用户 <code>ID</code>，在这种情况下，它们能够相互访问彼此的文件。 为了节省系统资源，可以安排具有相同用户 ID 的应用在同一 Linux 进程中运行，并共享同一 VM（应用还必须使用相同的证书签署）。</strong></li>
+<li><strong>应用可以请求访问设备数据（如用户的联系人、短信、可装载存储装置 [SD 卡]、相机、蓝牙等）的权限。 用户必须明确授予这些权限。</strong></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/iOS/" rel="tag"># iOS</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/11/01/小程序UnionID和授权机制/" rel="next" title="小程序UnionID和授权机制">
+                <i class="fa fa-chevron-left"></i> 小程序UnionID和授权机制
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          
+            <p class="site-author-name" itemprop="name">既白</p>
+            <p class="site-description motion-element" itemprop="description">card</p>
+        </div>
+
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+            
+              <a href="/archives/">
+            
+                <span class="site-state-item-count">15</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#iOS应用程序沙盒"><span class="nav-number">2.</span> <span class="nav-text">iOS应用程序沙盒</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#应用程序沙盒是基于几个直接的原则"><span class="nav-number">2.1.</span> <span class="nav-text">应用程序沙盒是基于几个直接的原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#iOS文件系统"><span class="nav-number">2.2.</span> <span class="nav-text">iOS文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-0应用名称-app"><span class="nav-number">2.2.1.</span> <span class="nav-text">1. 0应用名称.app</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-0-Documents"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.0 Documents/</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-0-Library"><span class="nav-number">2.2.3.</span> <span class="nav-text">3.0 /Library</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-0-tmp"><span class="nav-number">2.2.4.</span> <span class="nav-text">4.0 /tmp</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Android-应用程序沙盒"><span class="nav-number">3.</span> <span class="nav-text">Android 应用程序沙盒</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy;  2017 &mdash; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">既白</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+  <span class="post-meta-divider">|</span>
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.2</div>
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+  
+  <script type="text/javascript" src="/lib/canvas-nest/canvas-nest.min.js"></script>
+
+  
+  <script type="text/javascript" src="/lib/three/three.min.js"></script>
+
+  
+  <script type="text/javascript" src="/lib/three/canvas_sphere.min.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://既白.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /';
+          this.page.identifier = '2018/11/07/iOS与Android应用程序沙盒机制的研究与总结 /';
+          this.page.title = 'iOS与Android应用程序沙盒机制的研究与总结';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://既白.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
