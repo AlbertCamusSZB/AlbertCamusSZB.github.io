@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="Web,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="基本概念：openid是什么，一个微信号与一个公众号对应一个固定不变的openid。所以一个微信号在一个公众号下的openid是不变的，如果换了一个对应的公众号，那就是另一个openid了。且只有在微信自带浏览器中打开的项目才可获取到。 UnionID是什么，如果开发者拥有多个移动应用,网站应用,公众号和小程序，可以通过UnionID来区分用户的唯一性，因为只要是同一个微信开发平台账号下的移动应用">
+<meta name="keywords" content="Web">
+<meta property="og:type" content="article">
+<meta property="og:title" content="微信公众号开发 - 静默授权获取用户信息">
+<meta property="og:url" content="http://yoursite.com/2018/11/20/微信公众号开发 - 静默授权获取用户信息/index.html">
+<meta property="og:site_name" content="既白">
+<meta property="og:description" content="基本概念：openid是什么，一个微信号与一个公众号对应一个固定不变的openid。所以一个微信号在一个公众号下的openid是不变的，如果换了一个对应的公众号，那就是另一个openid了。且只有在微信自带浏览器中打开的项目才可获取到。 UnionID是什么，如果开发者拥有多个移动应用,网站应用,公众号和小程序，可以通过UnionID来区分用户的唯一性，因为只要是同一个微信开发平台账号下的移动应用">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-11-28T10:20:47.527Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="微信公众号开发 - 静默授权获取用户信息">
+<meta name="twitter:description" content="基本概念：openid是什么，一个微信号与一个公众号对应一个固定不变的openid。所以一个微信号在一个公众号下的openid是不变的，如果换了一个对应的公众号，那就是另一个openid了。且只有在微信自带浏览器中打开的项目才可获取到。 UnionID是什么，如果开发者拥有多个移动应用,网站应用,公众号和小程序，可以通过UnionID来区分用户的唯一性，因为只要是同一个微信开发平台账号下的移动应用">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/11/20/微信公众号开发 - 静默授权获取用户信息/">
+
+
+
+
+
+  <title>微信公众号开发 - 静默授权获取用户信息 | 既白</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?6f2357622e0d1dc032d88686b74381ff";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">既白</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/20/微信公众号开发 - 静默授权获取用户信息/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="既白">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="既白">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">微信公众号开发 - 静默授权获取用户信息</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-20T18:30:00+08:00">
+                2018-11-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/Web开发/" itemprop="url" rel="index">
+                    <span itemprop="name">Web开发</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/11/20/微信公众号开发 - 静默授权获取用户信息/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/11/20/微信公众号开发 - 静默授权获取用户信息/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="基本概念："><a href="#基本概念：" class="headerlink" title="基本概念："></a>基本概念：</h2><p><strong><code>openid</code>是什么</strong>，一个微信号与一个公众号对应一个固定不变的<code>openid</code>。所以一个微信号在一个公众号下的<code>openid</code>是不变的，如果换了一个对应的公众号，那就是另一个<code>openid</code>了。且只有在微信自带浏览器中打开的项目才可获取到。</p>
+<p><strong><code>UnionID</code>是什么</strong>，如果开发者拥有多个移动应用,网站应用,公众号和小程序，可以通过UnionID来区分用户的唯一性，因为只要是同一个微信开发平台账号下的移动应用,网站应用,公众号和小程序，用户的UnionID是唯一的。换句话说，同一个用户，对同一个微信开发平台的不同应用，UnionID是唯一的。</p>
+<p><strong>准备条件，</strong>一个公众号、一个外网可访问的域名、该公众号的<code>AppID</code>和 <code>AppSecret</code>、设置网页授权域名（登陆公众平台  设置—–&gt;公众号设置——&gt;功能设置—–&gt;网页授权域名 按步骤操作并设置就好），这个域名就是你获取openid的web项目发布的域名，这里注意服务器请一定跑在80端口。<br><a id="more"></a></p>
+<h2 id="第一步，获取code"><a href="#第一步，获取code" class="headerlink" title="第一步，获取code"></a>第一步，获取code</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 授权访问链接</span></span><br><span class="line">https:<span class="comment">//open.weixin.qq.com/connect/oauth2/authorize?appid=XXXXXXXX&amp;redirect_uri=http://test-recycle-h5.jxypapp.com&amp;response_type=code&amp;scope=snsapi_base&amp;state=%7B%22id%22%3D%221%22%2C%22name%22%3A%22xiaoming%22%7D#wechat_redirect</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 授权成功后，重定向链接</span></span><br><span class="line">http:<span class="comment">//test-recycle-h5.jxypapp.com/?code=0215ZMRH0rVjli29oYTH0exORH05ZMRz&amp;state=%7B%22id%22%3D%221%22%2C%22name%22%3A%22xiaoming%22%7D</span></span><br></pre></td></tr></table></figure>
+<p>参数解释：</p>
+<ul>
+<li><code>appid：</code> 公众号appid.</li>
+<li><code>redirect_uri：</code> 填写微信识别成功之后，跳转的<code>url</code>（需要encode编码）。</li>
+<li><code>response_type：</code> 就填<code>code</code>，不用修改。</li>
+<li><code>scope：</code> 可填<strong>（snsapi_base (静默授权)和snsapi_userinfo（弹出授权页面的授权方式）</strong>两个值，<strong>其中前者为只获得openid，不需要用户授权，后者为获得用户信息，需要用户授权）</strong>。</li>
+<li><code>state：</code> 自定义参数，重定向后会带上state参数，开发者可以填写<code>a-zA-Z0-9</code>的参数值，最多<code>128</code>字节（传<code>json</code>数据需要<code>encode</code>编码）。</li>
+<li><code>#wechat_redirect：</code> 指定在微信内跳转，平时可以不填，在302重定向时，必须填！</li>
+</ul>
+<p>注意事项：</p>
+<ul>
+<li><code>redirect_uri</code>需要<code>encode</code>编码，否则页面会显示<code>“redirect_ur参数错误！”</code>！</li>
+<li><code>redirect_uri</code>网址的域名必须是，你在微信公众平台账号中填写授权回调页的域名，具体需要登录微信公众平台后台，在用户信息那里点击修改，填上自己的域名即可，注意：授权回调页中的域名没有<code>http://</code></li>
+</ul>
+<h2 id="第二步，获取-openid"><a href="#第二步，获取-openid" class="headerlink" title="第二步，获取 openid"></a>第二步，获取 openid</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https:<span class="comment">//api.weixin.qq.com/sns/oauth2/access_token?appid=APPID&amp;secret=SECRET&amp;code=CODE&amp;grant_type=authorization_code</span></span><br></pre></td></tr></table></figure>
+<p>参数解释：</p>
+<ul>
+<li><code>appid</code> ：同上</li>
+<li><code>secret</code> ：同上</li>
+<li><code>code</code> ：填写第一步获取的<code>code</code>参数</li>
+<li><code>grant_type</code> ：填写为<code>authorization_code</code>   </li>
+</ul>
+<p>注意事项：</p>
+<ul>
+<li><strong>h5 页面如果直接调用次接口，可能存在跨域问题，可以让后台调用此接口</strong></li>
+</ul>
+<p>返回结果：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&#123; </span><br><span class="line"><span class="string">"access_token"</span>:<span class="string">"ACCESS_TOKEN"</span>,    </span><br><span class="line"></span><br><span class="line"> <span class="string">"expires_in"</span>:<span class="number">7200</span>,    </span><br><span class="line"></span><br><span class="line"> <span class="string">"refresh_token"</span>:<span class="string">"REFRESH_TOKEN"</span>,    </span><br><span class="line"></span><br><span class="line"> <span class="string">"openid"</span>:<span class="string">"OPENID"</span>,    </span><br><span class="line"></span><br><span class="line"> <span class="string">"scope"</span>:<span class="string">"SCOPE"</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="第三步，获取access-token"><a href="#第三步，获取access-token" class="headerlink" title="第三步，获取access_token"></a>第三步，获取access_token</h2><p><code>access_token</code>是公众号的全局唯一接口调用凭据，公众号调用各接口时都需使用<code>access_token</code>。开发者需要进行妥善保存。<code>access_token</code>的存储至少要保留512个字符空间。<code>access_token</code>的有效期目前为2个小时，需定时刷新，重复获取将导致上次获取的<code>access_token</code>失效。</p>
+<p>接口说明<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">https请求方式: GET</span><br><span class="line">https:<span class="comment">//api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&amp;appid=APPID&amp;secret=APPSECRET</span></span><br></pre></td></tr></table></figure></p>
+<p>参数说明</p>
+<ul>
+<li><code>grant_type</code>：获取<code>access_token</code>填写<code>client_credential</code></li>
+<li><code>appid</code>：第三方用户唯一凭证</li>
+<li><code>secret</code>：第三方用户唯一凭证密钥，即<code>appsecret</code></li>
+</ul>
+<p>返回结果<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"access_token"</span>:<span class="string">"ACCESS_TOKEN"</span>,<span class="string">"expires_in"</span>:<span class="number">7200</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="第四步，获取用户信息"><a href="#第四步，获取用户信息" class="headerlink" title="第四步，获取用户信息"></a>第四步，获取用户信息</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">接口调用请求说明</span><br><span class="line">http请求方式: GET</span><br><span class="line">https:<span class="comment">//api.weixin.qq.com/cgi-bin/user/info?access_token=ACCESS_TOKEN&amp;openid=OPENID&amp;lang=zh_CN</span></span><br></pre></td></tr></table></figure>
+<p>参数解释：</p>
+<ul>
+<li><code>access_token</code>    调用接口凭证 ，<strong>第三步获取的access_token</strong></li>
+<li><code>openid</code> 普通用户的标识，对当前公众号唯一，<strong>第二步获取的openid</strong></li>
+<li><code>lang</code> 返回国家地区语言版本，<code>zh_CN</code> 简体，<code>zh_TW</code> 繁体，<code>en</code> 英语</li>
+</ul>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">    <span class="string">"subscribe"</span>: <span class="number">1</span>,  <span class="comment">// 是否关注此公共号，0-未关注，1-关注</span></span><br><span class="line">    <span class="string">"openid"</span>: <span class="string">"o6_bmjrPTlm6_2sgVt7hMZOPfL2M"</span>,  <span class="comment">//用户的标识，对当前公众号唯一</span></span><br><span class="line">    <span class="string">"nickname"</span>: <span class="string">"Band"</span>,  <span class="comment">// 用户的昵称</span></span><br><span class="line">    <span class="string">"sex"</span>: <span class="number">1</span>,  <span class="comment">//用户的性别，值为1时是男性，值为2时是女性，值为0时是未知</span></span><br><span class="line">    <span class="string">"language"</span>: <span class="string">"zh_CN"</span>,  <span class="comment">// 用户的语言，简体中文为zh_CN</span></span><br><span class="line">    <span class="string">"city"</span>: <span class="string">"广州"</span>,  <span class="comment">// 用户所在城市</span></span><br><span class="line">    <span class="string">"province"</span>: <span class="string">"广东"</span>,  <span class="comment">// 用户所在省份</span></span><br><span class="line">    <span class="string">"country"</span>: <span class="string">"中国"</span>,  <span class="comment">// 用户所在国家</span></span><br><span class="line">    <span class="string">"headimgurl"</span>:<span class="string">"http://thirdwx.qlogo.cn/mmopen/g3MonUZtNHkdmzicIlibx6iaFqAc56vxLSUfpb6n5WKSYVY0ChQKkiaJSgQ1dZuTOgvLLrhJbERQQ4eMsv84eavHiaiceqxibJxCfHe/0"</span>, <span class="comment">//用户头像</span></span><br><span class="line">    <span class="string">"subscribe_time"</span>: <span class="number">1382694957</span>, <span class="comment">// 用户关注时间，为时间戳。如果用户曾多次关注，则取最后关注时间</span></span><br><span class="line">    <span class="string">"unionid"</span>: <span class="string">" o6_bmasdasdsad6_2sgVt7hMZOPfL"</span> ，<span class="comment">//只有在用户将公众号绑定到微信开放平台帐号后，才会出现该字段。</span></span><br><span class="line">    <span class="string">"remark"</span>: <span class="string">""</span>, <span class="comment">// 公众号运营者对粉丝的备注，公众号运营者可在微信公众平台用户管理界面对粉丝添加备注</span></span><br><span class="line">    <span class="string">"groupid"</span>: <span class="number">0</span>, <span class="comment">// 用户所在的分组ID（兼容旧的用户分组接口）</span></span><br><span class="line">    <span class="string">"tagid_list"</span>:[<span class="number">128</span>,<span class="number">2</span>], 用户被打上的标签ID列表</span><br><span class="line">    <span class="string">"subscribe_scene"</span>: <span class="string">"ADD_SCENE_QR_CODE"</span>, <span class="comment">//返回用户关注的渠道来源，ADD_SCENE_SEARCH 公众号搜索，ADD_SCENE_ACCOUNT_MIGRATION 公众号迁移，ADD_SCENE_PROFILE_CARD 名片分享，ADD_SCENE_QR_CODE 扫描二维码，ADD_SCENEPROFILE LINK 图文页内名称点击，ADD_SCENE_PROFILE_ITEM 图文页右上角菜单，ADD_SCENE_PAID 支付后关注，ADD_SCENE_OTHERS 其他</span></span><br><span class="line">    <span class="string">"qr_scene"</span>: <span class="number">98765</span>,</span><br><span class="line">    <span class="string">"qr_scene_str"</span>: <span class="string">""</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="参考链接："><a href="#参考链接：" class="headerlink" title="参考链接："></a>参考链接：</h2><p><a href="https://mp.weixin.qq.com/wiki?t=resource/res_main&amp;id=mp1421140839" target="_blank" rel="noopener">https://mp.weixin.qq.com/wiki?t=resource/res_main&amp;id=mp1421140839</a><br><a href="https://mp.weixin.qq.com/wiki?t=resource/res_main&amp;id=mp1421140183" target="_blank" rel="noopener">https://mp.weixin.qq.com/wiki?t=resource/res_main&amp;id=mp1421140183</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Web/" rel="tag"># Web</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/11/19/Url中Json数据处理/" rel="next" title="Url中Json数据处理">
+                <i class="fa fa-chevron-left"></i> Url中Json数据处理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/11/24/微信公众开发 - H5实现关注公众号/" rel="prev" title="微信公众开发 - H5实现关注公众号">
+                微信公众开发 - H5实现关注公众号 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+          
+            <p class="site-author-name" itemprop="name">既白</p>
+            <p class="site-description motion-element" itemprop="description">card</p>
+        </div>
+
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+            
+              <a href="/archives/">
+            
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#基本概念："><span class="nav-number">1.</span> <span class="nav-text">基本概念：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第一步，获取code"><span class="nav-number">2.</span> <span class="nav-text">第一步，获取code</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第二步，获取-openid"><span class="nav-number">3.</span> <span class="nav-text">第二步，获取 openid</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第三步，获取access-token"><span class="nav-number">4.</span> <span class="nav-text">第三步，获取access_token</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第四步，获取用户信息"><span class="nav-number">5.</span> <span class="nav-text">第四步，获取用户信息</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考链接："><span class="nav-number">6.</span> <span class="nav-text">参考链接：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy;  2017 &mdash; 
+  <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">既白</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+  <span class="post-meta-divider">|</span>
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.2</div>
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+  
+  <script type="text/javascript" src="/lib/canvas-nest/canvas-nest.min.js"></script>
+
+  
+  <script type="text/javascript" src="/lib/three/three.min.js"></script>
+
+  
+  <script type="text/javascript" src="/lib/three/canvas_sphere.min.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://既白.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/11/20/微信公众号开发 - 静默授权获取用户信息/';
+          this.page.identifier = '2018/11/20/微信公众号开发 - 静默授权获取用户信息/';
+          this.page.title = '微信公众号开发 - 静默授权获取用户信息';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://既白.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
